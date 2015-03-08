@@ -37,10 +37,18 @@ class Morse:
         '9' : ['dah','dah','dah','dah','dit'],
         '10': ['dah','dah','dah','dah','dah'],
         })
-    _dit = 0.3
-    _dah = 3 * _dit
-    _interword = 3 * _dit
-    _intraword = 7 * _dit
+
+    def __init__(self,dit=0.3):
+        assert float(dit)
+        self.__time__ = dict()
+        self.dit(dit)
+
+    def dit(self,dit):
+        assert float(dit)
+        self.__time__['dit'] = dit
+        self.__time__['dah'] = 3 * dit
+        self.__time__['_interword'] = 3 * dit
+        self.__time__['_intraword'] = 7 * dit
 
     def xlate(self,letter):
         try:
@@ -48,26 +56,26 @@ class Morse:
         except:
             return None
 
-    def dit(self,time):
-        assert float(time)
-        self._dit = time
-        self._dah = 3*time
-        self._interword = 3*time
-        self._intraword = 7*time
-
     def translate(self,string):
         """Translate a string into a list of morse bits """
         out = list()
         for l in list(string):
             if l == ' ':
+                if out[-1] == "_interword": out.pop()
                 out.append('_intraword')
             else:
                 out.extend(self.xlate(l))
                 out.append('_interword')
-        out.pop()  # pop off last interword
+        if out and out[-1] == '_interword': out.pop()  # pop off last interword
         return out
 
     def timing(self,message):
-        timed = list()
+        timelist = list()
         for symbol in message:
-            
+            if symbol == '_interword' or symbol == '_intraword':
+                timelist[-1] = [ 'off', self.__time__[symbol] ]
+            else:
+                timelist.append([ 'on', self.__time__[symbol] ])
+                timelist.append([ 'off', self.__time__['dit'] ])
+
+        return timelist
