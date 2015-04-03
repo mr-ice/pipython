@@ -18,28 +18,13 @@ game = {
          'match' : None,
        }
 
-w = card_size
-h = sqrt(2)*card_size
+w = card_size		 # width of a card is the card_size
+h = ((1 + sqrt(5)) / 2 ) *card_size # height of a card is phi times width
 
-class Animation:
-    def __init__(self):
-        self.__xpos = 0
-        self.__ypos = 0
-        self.__sequence = ()
-        self.__type = "text"
-        self._shown = True
-        self.__draw = ()
-        
-    def type(self,type,value):
-        self.__type = type
-        self.__draw = value
-        
-    def draw(self,canvas):
-        if self.__type == "text":
 for x in range(4):
     for y in range(4):
-        xpos = margins[0] + x * ( w + pad[0] )
-        ypos = margins[1] + y * ( h + pad[1] )
+        xpos = margins[0] + x * ( w + pad[0] ) - 0.5
+        ypos = margins[1] + y * ( h + pad[1] ) - 0.5
         # remember: x is horizontal offset, y is vertical offset
         cards.append( { 'location' : { 'x' : xpos, 'y' : ypos },
                         'value' : 'A',
@@ -104,7 +89,7 @@ def hide_matches():
     for card in cards:
         any = any or card['drawn']
     if not any:
-        if game['draws'] > game['best']: game['best'] = game['draws']
+        if game['draws'] < game['best'] or game['best'] == 0: game['best'] = game['draws']
         animationtimer.start()
         
 # helper function to initialize globals
@@ -151,18 +136,25 @@ def draw(canvas):
     for card in cards:
         draw_card(card,canvas)
     label.set_text("Turns = " + str(game['draws']))
-    best.set_text("Best = " + str(game['best'])) 
+    if game['best'] > 0:
+        best.set_text("Best = " + str(game['best'])) 
 
 def animate():
+    pass
     
 # create frame and add a button and labels
 frame = simplegui.create_frame("Memory", margins[0] + 4 * (w + pad[0]) + margins[0]/2,
                                          margins[1] + 4 * (h + pad[1]) + margins[1]/2)
-frame.add_button("Reset", new_game)
-frame.add_button("Show All", show_all)
-frame.add_button("Hide All", hide_all)
+line = frame.add_label("----------------------------")
 label = frame.add_label("Turns = 0")
 best = frame.add_label("Best = 0")
+line = frame.add_label("----------------------------")
+frame.add_button("New Game", new_game)
+line = frame.add_label("----------------------------")
+#line = frame.add_label("----------DEBUGGING---------")
+#frame.add_button("Show All", show_all)
+#frame.add_button("Hide All", hide_all)
+
 
 # register event handlers
 frame.set_mouseclick_handler(mouseclick)
