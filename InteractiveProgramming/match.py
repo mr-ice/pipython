@@ -98,7 +98,6 @@ def new_game():
     game['draws'] = 0
     game['drawn'] = False
     game['match'] = False
-    if animationtimer.is_running(): animationtimer.stop()
     if showtimer.is_running(): showtimer.stop()
     if matchtimer.is_running(): matchtimer.stop()
 
@@ -143,8 +142,9 @@ def animate():
     pass
     
 # create frame and add a button and labels
-frame = simplegui.create_frame("Memory", margins[0] + 4 * (w + pad[0]) + margins[0]/2,
-                                         margins[1] + 4 * (h + pad[1]) + margins[1]/2)
+frame = simplegui.create_frame("Concentration",
+                               margins[0] + 4 * (w + pad[0]) + margins[0]/2,
+                               margins[1] + 4 * (h + pad[1]) + margins[1]/2)
 line = frame.add_label("----------------------------")
 label = frame.add_label("Turns = 0")
 best = frame.add_label("Best = 0")
@@ -162,7 +162,6 @@ frame.set_draw_handler(draw)
 
 showtimer = simplegui.create_timer(showtime,hide_all)
 matchtimer = simplegui.create_timer(matchtime,hide_matches)
-animationtimer = simplegui.create_timer(1,animate)
 
 # get things rolling
 new_game()
