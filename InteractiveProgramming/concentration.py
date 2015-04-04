@@ -188,7 +188,6 @@ def draw(canvas):
 def animation():
     global animation_tick
     animation_tick += 1
-    print animation_tick
     
 def game_over():
     """Prematurely end the game for debugging"""
@@ -203,7 +202,7 @@ line = frame.add_label("----------------------------")
 label = frame.add_label("Turns = 0")
 best = frame.add_label("Best = 0")
 line = frame.add_label("----------------------------")
-frame.add_button("New Game", new_game)
+frame.add_button("Reset", new_game)
 line = frame.add_label("----------------------------")
 #line = frame.add_label("----------DEBUGGING---------")
 #frame.add_button("Show All", show_all)
