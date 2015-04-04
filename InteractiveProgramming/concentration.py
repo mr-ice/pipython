@@ -1,5 +1,11 @@
 # implementation of card game - Memory
 
+# I originally coded this with timers for hiding the cards instead of hiding them
+# on a mouse click.  And I removed cards that matched instead of leaving them face up.
+# I thought it worked pretty well but it didn't meet the requirements of the grading
+# rubrick, so I had to make changes.  If you want to see that code, you can see it at
+# http://www.codeskulptor.org/#user39_efDZwo8MIu_0.py
+
 import simplegui
 import random
 from math import sqrt
@@ -8,8 +14,8 @@ cards = list()       # list to hold the cards
 card_size = 75       # x dimension of card (y dimension is calculated based on this)
 margins = ( 20, 20 ) # spacing around edges
 pad = ( 10, 10 )     # intercard spacing
-showtime = 700       # number of milliseconds to show revealed, unmatched cards
-matchtime = 350      # number of milliseconds to show revealed, matched cards
+##showtime = 700       # number of milliseconds to show revealed, unmatched cards
+##matchtime = 350      # number of milliseconds to show revealed, matched cards
 fontsize = 35        # size of the font for card faces
 
 game = {
@@ -19,6 +25,7 @@ game = {
          'drawn' : None,
          'match' : None,
        }
+game_over_text = "Game Over!"
 
 animated = False
 animation_tick = 0
@@ -120,8 +127,8 @@ def new_game():
     game['drawn'] = False
     game['match'] = False
     game['over'] = False
-    if showtimer.is_running(): showtimer.stop()
-    if matchtimer.is_running(): matchtimer.stop()
+##   if showtimer.is_running(): showtimer.stop()
+##   if matchtimer.is_running(): matchtimer.stop()
     if animationtimer.is_running(): animationtimer.stop()
     animation_tick = 0
 
@@ -138,32 +145,42 @@ def clicked(card,pos):
 def mouseclick(pos):
     # add game state logic here
     global cards, hidetimer, showtimer
-    if showtimer.is_running() or matchtimer.is_running() or animated: return
-    any = False
+##    if showtimer.is_running() or matchtimer.is_running() or animated: return
+    if animated: return
+    all = True
     for card in cards:
         if clicked(card,pos):
             card['face'] = True
+            if game['drawn'] and game['match']:
+                if game['drawn']['value'] != game['match']['value']:
+                    game['drawn']['face'] = False
+                    game['match']['face'] = False
+                game['drawn'] = None
+                game['match'] = None
             if not game['drawn']:
                 game['drawn'] = card
-            elif card['value'] == game['drawn']['value']:
+            elif not game['match']:
                 game['match'] = card
                 game['draws'] += 1
-                matchtimer.start()
-            else:
-                game['drawn'] = None
-                game['draws'] += 1
-                showtimer.start()
-                        
-# cards are logically 50x100 pixels in size    
+        all = all and card['face']
+    if all:
+        if game['draws'] < game['best'] or game['best'] == 0: game['best'] = game['draws']
+        for card in cards:
+            card['drawn'] = False
+        game['over'] = True
+        animationtimer.start()
+                
+# cards are logically 50x100 pixels in size (or not, I set mine differently, above)    
 def draw(canvas):
+    global game_over
     for card in cards:
         draw_card(card,canvas)
     label.set_text("Turns = " + str(game['draws']))
     if game['best'] > 0:
         best.set_text("Best = " + str(game['best']))
     if game['over']:
-        game_over_width = frame.get_canvas_textwidth(game_over, animation_tick)
-        canvas.draw_text(game_over, ( canvaswidth/2 - game_over_width/2, 
+        game_over_width = frame.get_canvas_textwidth(game_over_text, animation_tick)
+        canvas.draw_text(game_over_text, ( canvaswidth/2 - game_over_width/2, 
                          canvasheight/2 ), animation_tick, "red" )
         if animation_tick >= fontsize*2:
             animationtimer.stop()
@@ -171,6 +188,7 @@ def draw(canvas):
 def animation():
     global animation_tick
     animation_tick += 1
+    print animation_tick
     
 def game_over():
     """Prematurely end the game for debugging"""
@@ -187,22 +205,18 @@ best = frame.add_label("Best = 0")
 line = frame.add_label("----------------------------")
 frame.add_button("New Game", new_game)
 line = frame.add_label("----------------------------")
-line = frame.add_label("----------DEBUGGING---------")
+#line = frame.add_label("----------DEBUGGING---------")
 #frame.add_button("Show All", show_all)
 #frame.add_button("Hide All", hide_all)
-frame.add_button("Animate", animation)
-frame.add_button("Game Over", game_over)
-
-# Create animation list
-game_over = "Game Over!"
-
+#frame.add_button("Animate", animation)
+#frame.add_button("Game Over", game_over)
 
 # register event handlers
 frame.set_mouseclick_handler(mouseclick)
 frame.set_draw_handler(draw)
 
-showtimer = simplegui.create_timer(showtime,hide_all)
-matchtimer = simplegui.create_timer(matchtime,hide_matches)
+##showtimer = simplegui.create_timer(showtime,hide_all)
+##matchtimer = simplegui.create_timer(matchtime,hide_matches)
 animationtimer = simplegui.create_timer(10,animation)
 
 # get things rolling
