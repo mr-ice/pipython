@@ -5,21 +5,29 @@ import random
 from math import sqrt
 
 cards = list()       # list to hold the cards
-card_size = 50       # x dimension of card (y dimension is calculated based on this)
+card_size = 75       # x dimension of card (y dimension is calculated based on this)
 margins = ( 20, 20 ) # spacing around edges
 pad = ( 10, 10 )     # intercard spacing
-showtime = 700       # number of milliseconds to show second revealed card
+showtime = 700       # number of milliseconds to show revealed, unmatched cards
 matchtime = 350      # number of milliseconds to show revealed, matched cards
+fontsize = 35        # size of the font for card faces
 
 game = {
+         'over' : False,
          'best' : 0,
          'draws' : 0,
          'drawn' : None,
          'match' : None,
        }
 
+animated = False
+animation_tick = 0
+
 w = card_size		 # width of a card is the card_size
 h = ((1 + sqrt(5)) / 2 ) *card_size # height of a card is phi times width
+
+canvaswidth = margins[0] + 4 * (w + pad[0]) + margins[0]/2
+canvasheight = margins[1] + 4 * (h + pad[1]) + margins[1]/2
 
 for x in range(4):
     for y in range(4):
@@ -30,10 +38,10 @@ for x in range(4):
                         'value' : 'A',
                         'size' : { 'x' : w, 'y' : h },
                         'face' : False,
-                        'color' : 'red',
-                        'fill' : 'green',
+                        'color' : '#990033',
+                        'fill' : '#009933',
                         'fontcolor' : 'yellow',
-                        'fontsize' : 30,
+                        'fontsize' : fontsize,
                         'linewidth' : 2,
                         'drawn' : True,
                        })
@@ -56,18 +64,28 @@ def draw_card( card, canvas ):
     w = card['size']['x']    
     h = card['size']['y']
     
+    # location of this card, set of points describing a rectangle
     loc = [
               ( x, y ),
               ( x, y+h ),
               ( x+w, y+h ),
               ( x+w, y),
           ] 
-    
+    # decoration on this card, set of points describing a diamond in the rectangle
+    dec = [
+              ( x + w/2, y ),
+              ( x + w, y + h/2 ),
+              ( x + w/2, y + h ),
+              ( x, y + h/2 ),
+          ]    
+    tx = x + w/2 - card['fontsize']/4
+    ty = y + h/2 + card['fontsize']/4
     canvas.draw_polygon(loc, card['linewidth'], card['color'], card['fill'])
     if card['face']:
-        tx = x + w/2 - card['fontsize']/4
-        ty = y + h/2 + card['fontsize']/4
         canvas.draw_text(str(card['value']), (tx,ty), card['fontsize'], card['fontcolor'])
+    else:
+        canvas.draw_polygon(dec, card['linewidth'], card['color'])
+        canvas.draw_text("?", (tx, ty), card['fontsize'], card['color'])
 
 def hide_all():
     for card in cards:
@@ -90,16 +108,22 @@ def hide_matches():
         any = any or card['drawn']
     if not any:
         if game['draws'] < game['best'] or game['best'] == 0: game['best'] = game['draws']
+        game['over'] = True
         animationtimer.start()
+    
         
 # helper function to initialize globals
 def new_game():
+    global animation_tick
     initialize_cards()
     game['draws'] = 0
     game['drawn'] = False
     game['match'] = False
+    game['over'] = False
     if showtimer.is_running(): showtimer.stop()
     if matchtimer.is_running(): matchtimer.stop()
+    if animationtimer.is_running(): animationtimer.stop()
+    animation_tick = 0
 
 def clicked(card,pos):
     if not card['drawn'] or card['face']: return False
@@ -114,7 +138,8 @@ def clicked(card,pos):
 def mouseclick(pos):
     # add game state logic here
     global cards, hidetimer, showtimer
-    if showtimer.is_running() or matchtimer.is_running(): return
+    if showtimer.is_running() or matchtimer.is_running() or animated: return
+    any = False
     for card in cards:
         if clicked(card,pos):
             card['face'] = True
@@ -128,7 +153,6 @@ def mouseclick(pos):
                 game['drawn'] = None
                 game['draws'] += 1
                 showtimer.start()
-    
                         
 # cards are logically 50x100 pixels in size    
 def draw(canvas):
@@ -136,24 +160,41 @@ def draw(canvas):
         draw_card(card,canvas)
     label.set_text("Turns = " + str(game['draws']))
     if game['best'] > 0:
-        best.set_text("Best = " + str(game['best'])) 
+        best.set_text("Best = " + str(game['best']))
+    if game['over']:
+        game_over_width = frame.get_canvas_textwidth(game_over, animation_tick)
+        canvas.draw_text(game_over, ( canvaswidth/2 - game_over_width/2, 
+                         canvasheight/2 ), animation_tick, "red" )
+        if animation_tick >= fontsize*2:
+            animationtimer.stop()
 
-def animate():
-    pass
+def animation():
+    global animation_tick
+    animation_tick += 1
     
+def game_over():
+    """Prematurely end the game for debugging"""
+    for card in cards:
+        card['drawn'] = False
+    animationtimer.start()
+    game['over'] = True
+
 # create frame and add a button and labels
-frame = simplegui.create_frame("Concentration",
-                               margins[0] + 4 * (w + pad[0]) + margins[0]/2,
-                               margins[1] + 4 * (h + pad[1]) + margins[1]/2)
+frame = simplegui.create_frame("Concentration", canvaswidth, canvasheight)
 line = frame.add_label("----------------------------")
 label = frame.add_label("Turns = 0")
 best = frame.add_label("Best = 0")
 line = frame.add_label("----------------------------")
 frame.add_button("New Game", new_game)
 line = frame.add_label("----------------------------")
-#line = frame.add_label("----------DEBUGGING---------")
+line = frame.add_label("----------DEBUGGING---------")
 #frame.add_button("Show All", show_all)
 #frame.add_button("Hide All", hide_all)
+frame.add_button("Animate", animation)
+frame.add_button("Game Over", game_over)
+
+# Create animation list
+game_over = "Game Over!"
 
 
 # register event handlers
@@ -162,10 +203,10 @@ frame.set_draw_handler(draw)
 
 showtimer = simplegui.create_timer(showtime,hide_all)
 matchtimer = simplegui.create_timer(matchtime,hide_matches)
+animationtimer = simplegui.create_timer(10,animation)
 
 # get things rolling
 new_game()
 frame.start()
-
 
 # Always remember to review the grading rubric
