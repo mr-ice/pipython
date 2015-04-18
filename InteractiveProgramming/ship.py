@@ -21,6 +21,10 @@ class Game:
         self.score = 0
         self.lives = 3
         self.time = 0.5
+        
+    def draw(self,canvas):
+        canvas.draw_text("Lives: %d"%(self.lives), (20,30), 20, "Red")
+        canvas.draw_text("Score: %d"%(self.score), (WIDTH-100,30), 20, "Yellow")
 
 class Image:
     def __init__(self, url, center, size, radius = 0, lifespan = None, animated = False):
@@ -104,7 +108,7 @@ class Ship:
         self.image_center = image.get_center()
         self.image_size = image.get_size()
         self.radius = image.get_radius()
-        
+                
     def draw(self,canvas):
         canvas.draw_image(self.image.image,
                           self.image.get_center(),
@@ -120,10 +124,11 @@ class Ship:
             for x in range(2):
                 direction[x] *= angular_acceleration 
                 self.vel[x] += direction[x]
+            ship_thrust_sound.play()
+            self.image.center[0] = 135
         else:
-            for x in range(2):
-                self.vel[x] = self.vel[x] * (  1 - friction )
-                if self.vel[x] < 0.0000001: self.vel[x] = 0
+            ship_thrust_sound.pause()
+            self.image.center[0] = 45
                     
         for x in range(2):
             self.pos[x] += self.vel[x]
@@ -159,10 +164,12 @@ class Sprite:
                 self.pos[x] = 0
             elif self.pos[x] < 0:
                 self.pos[x] = dim[x]
-            
-           
+                
+                
 def draw(canvas):
     global game
+    
+    game.draw(canvas)
     
     # animate background
     game.time += 1
@@ -193,7 +200,16 @@ def rock_spawner():
 def missile_spawner():
     global missiles
     if len(missiles) > MAX_MISSILES: missiles = missiles[-(MAX_MISSILES-1):]
-    a_missile = Sprite([2 * WIDTH / 3, 2 * HEIGHT / 3], [-1,1], 0, 0, missile, missile_sound)
+        
+    velocity = my_ship.vel
+    add_velocity = angle_to_vector(my_ship.angle)
+    for x in range(2):
+        add_velocity[x] *= missile_velocity
+        add_velocity[x] += velocity[x]
+        
+    cannon_pos = list(my_ship.pos)
+        
+    a_missile = Sprite(cannon_pos, add_velocity, 0, 0, missile, missile_sound)
     missiles.append(a_missile)
     
 def key_down(key):
