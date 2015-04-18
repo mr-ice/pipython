@@ -6,8 +6,14 @@ import random
 # globals for user interface
 WIDTH = 800
 HEIGHT = 600
+dim = [ WIDTH, HEIGHT ]
+
+MAX_MISSILES = 10
+MAX_ROCKS = 12
 
 angular_acceleration = 0.06
+linear_acceleration = 0.1
+missile_velocity = 3
 friction = 0.06
 
 class Game:
@@ -121,6 +127,10 @@ class Ship:
                     
         for x in range(2):
             self.pos[x] += self.vel[x]
+            if self.pos[x] > dim[x]:
+                self.pos[x] = 0
+            elif self.pos[x] < 0:
+                self.pos[x] = dim[x]
     
     
 # Sprite class
@@ -143,7 +153,13 @@ class Sprite:
                           self.pos, self.image.get_size())
     
     def update(self):
-        pass        
+        for x in range(2):
+            self.pos[x] += self.vel[x]
+            if self.pos[x] > dim[x]:
+                self.pos[x] = 0
+            elif self.pos[x] < 0:
+                self.pos[x] = dim[x]
+            
            
 def draw(canvas):
     global game
@@ -156,21 +172,30 @@ def draw(canvas):
     canvas.draw_image(nebula.image, nebula.get_center(), nebula.get_size(), [WIDTH / 2, HEIGHT / 2], [WIDTH, HEIGHT])
     canvas.draw_image(debris.image, center, size, (wtime - WIDTH / 2, HEIGHT / 2), (WIDTH, HEIGHT))
     canvas.draw_image(debris.image, center, size, (wtime + WIDTH / 2, HEIGHT / 2), (WIDTH, HEIGHT))
-
-    # draw ship and sprites
-    my_ship.draw(canvas)
-    a_rock.draw(canvas)
-    a_missile.draw(canvas)
     
-    # update ship and sprites
+    # dras & update ship and sprites
+    my_ship.draw(canvas)
     my_ship.update()
-    a_rock.update()
-    a_missile.update()
+    for rock in rocks:
+        rock.draw(canvas)
+        rock.update()
+    for missile in missiles:
+        missile.draw(canvas)
+        missile.update()
             
 # timer handler that spawns a rock    
 def rock_spawner():
-    pass
-
+    global rocks
+    if len(rocks) > MAX_ROCKS: rocks = rocks[-(MAX_ROCKS-1):]
+    a_rock = Sprite([WIDTH / 3, HEIGHT / 3], [1, 1], 0, 0, asteroid)
+    rocks.append(a_rock)
+    
+def missile_spawner():
+    global missiles
+    if len(missiles) > MAX_MISSILES: missiles = missiles[-(MAX_MISSILES-1):]
+    a_missile = Sprite([2 * WIDTH / 3, 2 * HEIGHT / 3], [-1,1], 0, 0, missile, missile_sound)
+    missiles.append(a_missile)
+    
 def key_down(key):
     global my_ship, angular_acceleration
     if key==simplegui.KEY_MAP["left"]:
@@ -179,6 +204,8 @@ def key_down(key):
         my_ship.angle_vel = angular_acceleration
     if key==simplegui.KEY_MAP["up"]:
         my_ship.thrust = True
+    if key==simplegui.KEY_MAP["space"]:
+        missile_spawner()
         
 def key_up(key):
     global my_ship, angular_acceleration
@@ -199,8 +226,11 @@ game = Game()
 
 # initialize ship and two sprites
 my_ship = Ship([WIDTH / 2, HEIGHT / 2], [0, 0], 10, ship)
-a_rock = Sprite([WIDTH / 3, HEIGHT / 3], [1, 1], 0, 0, asteroid)
-a_missile = Sprite([2 * WIDTH / 3, 2 * HEIGHT / 3], [-1,1], 0, 0, missile, missile_sound)
+rocks = []
+rock_spawner()
+missiles = []
+missile_spawner()
+
 
 # register handlers
 frame.set_draw_handler(draw)
