@@ -9,12 +9,35 @@ HEIGHT = 600
 dim = [ WIDTH, HEIGHT ]
 
 MAX_MISSILES = 10
-MAX_ROCKS = 12
+MAX_ROCKS = 1
+
+MAX_ROCK_VELOCITY = 3
+MIN_ROCK_VELOCITY = 1
+
+MIN_ROCK_ROTATION = 1 # 0.006
+MAX_ROCK_ROTATION = 3 # 0.08
 
 angular_acceleration = 0.06
 linear_acceleration = 0.1
 missile_velocity = 3
 friction = 0.06
+
+DEBUG_VELOCITY = 1
+DEBUG_ACCELERATION = 2
+DEBUG_MISSILES = 4
+DEBUG_ROCK_SPAWN = 8
+DEBUG_ = 16
+DEBUG_ = 32
+
+# & together DEBUG flags to get DEBUG
+DEBUG = DEBUG_ROCK_SPAWN
+
+def randrange(min,max):
+    return random.random() * ( max - min ) + min
+
+def log(debug,*message):
+    if debug & DEBUG == DEBUG:
+        print message
 
 class Game:
     def __init__(self):
@@ -114,10 +137,13 @@ class Ship:
                           self.image.get_center(),
                           self.image.get_size(),
                           self.pos, self.image.get_size(), self.angle)
-        #canvas.draw_circle(self.pos, self.radius, 1, "White", "White")
 
     def update(self):
-        print self.pos, self.vel, self.thrust, self.angle, angle_to_vector(self.angle)
+        log(DEBUG_VELOCITY, self.pos)
+        log(DEBUG_VELOCITY, angle_to_vector(self.angle))
+        log(DEBUG_ACCELERATION, self.thrust)
+        log(DEBUG_ACCELERATION, self.angle)
+        log(DEBUG_ACCELERATION, self.vel)
         self.angle += self.angle_vel
         if self.thrust:
             direction = angle_to_vector(self.angle)
@@ -132,6 +158,9 @@ class Ship:
                     
         for x in range(2):
             self.pos[x] += self.vel[x]
+            # Primitively check for edge (pos is the
+            # center of our image, so we jump over when our
+            # center crosses)
             if self.pos[x] > dim[x]:
                 self.pos[x] = 0
             elif self.pos[x] < 0:
@@ -193,8 +222,35 @@ def draw(canvas):
 # timer handler that spawns a rock    
 def rock_spawner():
     global rocks
-    if len(rocks) > MAX_ROCKS: rocks = rocks[-(MAX_ROCKS-1):]
-    a_rock = Sprite([WIDTH / 3, HEIGHT / 3], [1, 1], 0, 0, asteroid)
+    if len(rocks) >= MAX_ROCKS:
+        if MAX_ROCKS > 1:
+            rocks = rocks[-(MAX_ROCKS-1):]
+        else:
+            rocks = []
+    
+    circumpos = random.random() * (HEIGHT * 2 + WIDTH * 2)
+    log(DEBUG_ROCK_SPAWN, circumpos)
+    position = [ 0, HEIGHT / 2 ]
+    if circumpos < WIDTH:
+        position = [ circumpos, 0 ]
+    elif circumpos < WIDTH + HEIGHT:
+        position = [ WIDTH, circumpos - WIDTH ]
+    elif circumpos > WIDTH * 2 + HEIGHT:
+        position = [ 0, circumpos - WIDTH * 2 - HEIGHT ]
+    else:
+        position = [ circumpos - WIDTH - HEIGHT, HEIGHT ]
+    
+    direction = random.random() * math.pi * 2
+    
+    velocity = angle_to_vector(direction)
+    
+    speed = randrange( MIN_ROCK_VELOCITY, MAX_ROCK_VELOCITY )
+    rotation = randrange( MIN_ROCK_ROTATION, MAX_ROCK_ROTATION )
+
+    for x in range(2):
+        velocity[x] *= speed
+        
+    a_rock = Sprite( position, velocity, 0, rotation, asteroid)
     rocks.append(a_rock)
     
 def missile_spawner():
